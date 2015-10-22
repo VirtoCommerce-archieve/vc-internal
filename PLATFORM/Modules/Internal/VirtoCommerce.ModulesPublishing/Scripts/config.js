@@ -31,7 +31,7 @@ angular.module(moduleTemplateName, [])
     }
   ])
 .run(
-  ['platformWebApp.mainMenuService', function (mainMenuService) {
+  ['platformWebApp.mainMenuService', '$state', function (mainMenuService, $state) {
       console.log('registr');
       //Register module in main menu
       var menuItem = {
@@ -39,7 +39,7 @@ angular.module(moduleTemplateName, [])
           icon: 'fa fa-cube',
           title: 'Modules publishing',
           priority: 120,
-          state: 'workspace.modulesPublishing'
+          action: function () { $state.go('workspace.modulesPublishing'); }
       };
       mainMenuService.addMenuItem(menuItem);
   }]);

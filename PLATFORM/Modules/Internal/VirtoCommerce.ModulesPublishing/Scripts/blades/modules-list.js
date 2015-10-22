@@ -1,4 +1,4 @@
-﻿angular.module('virtoCommerce.modulesPublishing', [])
+﻿angular.module('virtoCommerce.modulesPublishing')
 .controller('virtoCommerce.modulesPublishing.modulesListController', ['$injector', '$rootScope', '$scope',
 function ($injector, $rootScope, $scope) {
     $scope.data = "some content";
