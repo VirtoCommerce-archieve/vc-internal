@@ -32,7 +32,6 @@ angular.module(moduleTemplateName, [])
   ])
 .run(
   ['platformWebApp.mainMenuService', '$state', function (mainMenuService, $state) {
-      console.log('registr');
       //Register module in main menu
       var menuItem = {
           path: 'configuration/modulesPublishing',
@@ -43,5 +42,3 @@ angular.module(moduleTemplateName, [])
       };
       mainMenuService.addMenuItem(menuItem);
   }]);
-
-console.log('config end');

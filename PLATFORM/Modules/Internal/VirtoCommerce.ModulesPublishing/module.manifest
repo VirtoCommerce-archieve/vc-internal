@@ -1,34 +1,45 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <module>
-  <id>VirtoCommerce.ModulesPublishing</id>
-  <version>1.0.0</version>
-  <platformVersion>2.5.0</platformVersion>
-  <dependencies>
-    <dependency id="VirtoCommerce.Core" version="2.5.0" />
-  </dependencies>
+    <id>VirtoCommerce.ModulesPublishing</id>
+    <version>1.0.0</version>
+    <platformVersion>2.5.0</platformVersion>
+    <dependencies>
+        <dependency id="VirtoCommerce.Core" version="2.5.0" />
+    </dependencies>
 
-  <title>Modules Publishing</title>
-  <description>Publish modules to App store</description>
-  <authors>
-    <author>Virto Commerce</author>
-  </authors>
-  <owners>
-    <owner>Virto Commerce</owner>
-  </owners>
-  <projectUrl>http://virtocommerce.com/</projectUrl>
-  <iconUrl>Modules/$(VirtoCommerce.Core)/Content/logoVC.png</iconUrl>
-  <releaseNotes>First version.</releaseNotes>
-  <copyright>Copyright © 2011-2015 Virto Commerce. All rights reserved</copyright>
-  <tags>modules</tags>
+    <title>Modules Publishing</title>
+    <description>Publish modules to App store</description>
+    <authors>
+        <author>Virto Commerce</author>
+    </authors>
+    <owners>
+        <owner>Virto Commerce</owner>
+    </owners>
+    <projectUrl>http://virtocommerce.com/</projectUrl>
+    <iconUrl>Modules/$(VirtoCommerce.Core)/Content/logoVC.png</iconUrl>
+    <releaseNotes>First version.</releaseNotes>
+    <copyright>Copyright © 2011-2015 Virto Commerce. All rights reserved</copyright>
+    <tags>modules</tags>
 
-  <assemblyFile>VirtoCommerce.ModulesPublishing.dll</assemblyFile>
-  <moduleType>VirtoCommerce.ModulesPublishing.Module, VirtoCommerce.ModulesPublishing</moduleType>
-    
-  <styles>
-    <directory virtualPath="$/Content/css" searchPattern="*.css" searchSubdirectories="true" />
-  </styles>
-  <scripts>
-    <directory virtualPath="$/Scripts" searchPattern="*.js" searchSubdirectories="true" />
-  </scripts>
+    <assemblyFile>VirtoCommerce.ModulesPublishing.dll</assemblyFile>
+    <moduleType>VirtoCommerce.ModulesPublishing.Module, VirtoCommerce.ModulesPublishing</moduleType>
+
+    <styles>
+        <directory virtualPath="$/Content/css" searchPattern="*.css" searchSubdirectories="true" />
+    </styles>
+    <scripts>
+        <directory virtualPath="$/Scripts" searchPattern="*.js" searchSubdirectories="true" />
+    </scripts>
+
+    <settings>
+        <group name="General">
+            <setting>
+                <name>VirtoCommerce.ModulesPublishing.General.SourcePath</name>
+                <valueType>string</valueType>
+                <title>Modules path</title>
+                <description>Specify a path for the imported modules</description>
+            </setting>
+        </group>
+    </settings>
 
 </module>

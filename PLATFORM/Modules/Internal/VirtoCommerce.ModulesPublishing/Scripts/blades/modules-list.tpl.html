@@ -1,3 +1,53 @@
-﻿<div style="width: 400px;"> 
-    <p>{{data}}</p>
+﻿<div class="blade-static __bottom">
+    <button class="btn" ng-click="startProcess()" ng-disabled="!canStartProcess() || blade.notification">
+        <span>Start import</span>
+    </button>
+</div>
+<div class="blade-content">
+    <div class="blade-inner">
+        <div class="inner-block">
+            <!--<div ng-show="uploader.isUploading">
+                <div class="sub-t">Searh modules for publishing ...</div>
+                <div class="progress-bar __aqua" ng-style="{'width': uploader.progress + '%'}" style="width: 0%;"></div>
+            </div>-->
+            
+            <form class="form ng-pristine ng-valid" ng-if="moduleList && !blade.notification">
+               <fieldset>
+                    <legend>Choose modules to publish</legend>
+                    <div class="list __items">
+                        <label class="list-item" ng-repeat="data in moduleList">
+                            <input type="checkbox" ng-model="data.isChecked">
+                            <span class="switch"></span>
+                            <span class="list-id">{{data.id}}</span>
+                            <span class="list-name">{{data.name}}</span>
+                            <span class="list-descr">{{data.description}}</span>
+                            <span class="list-version">{{data.version}}</span>
+                            <span class="list-new">{{data.isnew}}</span>
+                        </label>
+                    </div>
+                    <div class="note" ng-if="blade.currentEntities.length == 0">
+                        No data
+                    </div>
+                </fieldset>
+            </form>
+            <!--<div class="form" ng-if="blade.notification">
+                <div class="block">
+                    <div>
+                        <div class="sub-t">{{blade.notification.description}}</div>
+                        <div class="block" ng-if="blade.notification.created || blade.notification.finished">
+                            <p ng-if="blade.notification.created" ng-class="{'no-data': blade.notification.created}" class="text">Start — <i class="fa fa-clock-o"></i> <span am-time-ago="blade.notification.created"></span></p>
+                            <p ng-if="blade.notification.finished" ng-class="{'no-data': blade.notification.finished}" class="text">End — <i class="fa fa-clock-o"></i> <span am-time-ago="blade.notification.finished"></span></p>
+                        </div>
+
+                        <div ng-if="blade.notification.errorCount > 0">
+                            <span class="sub-t">Errors</span>
+                            <div class="log">
+                                <p ng-repeat="error in blade.notification.errors track by $index" class="error">{{error}}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>-->
+        </div>
+    </div>
 </div>
