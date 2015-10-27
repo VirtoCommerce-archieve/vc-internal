@@ -5,6 +5,7 @@
     <platformVersion>2.5.0</platformVersion>
     <dependencies>
         <dependency id="VirtoCommerce.Core" version="2.5.0" />
+        <dependency id="VirtoCommerce.Catalog" version="2.5.0" />
     </dependencies>
 
     <title>Modules Publishing</title>
@@ -38,6 +39,12 @@
                 <valueType>string</valueType>
                 <title>Modules path</title>
                 <description>Specify a path for the imported modules</description>
+            </setting>
+            <setting>
+                <name>VirtoCommerce.ModulesPublishing.General.NewAppCategory</name>
+                <valueType>string</valueType>
+                <title>Category of wew applications</title>
+                <description>All new applications added to the caregory</description>
             </setting>
         </group>
     </settings>

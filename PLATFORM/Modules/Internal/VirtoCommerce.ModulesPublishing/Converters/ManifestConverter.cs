@@ -6,18 +6,6 @@ namespace VirtoCommerce.ModulesPublishing.Converters
 {
     public class ManifestConverter
     {
-        public static CatalogProduct ConvertToProduct(SourceModuleManifest source)
-        {
-            var product = new CatalogProduct
-            {
-                Name = source.Manifest.Title,
-                Code = source.Manifest.Id,
-                CategoryId = source.Category.Id,
-                CatalogId = source.Category.CatalogId,
-            };
-            return product;
-        }
-
         public static CatalogProduct ConvertToVariation(SourceModuleManifest source)
         {
             var variation = new CatalogProduct
@@ -25,8 +13,8 @@ namespace VirtoCommerce.ModulesPublishing.Converters
                 Name = source.VariationName,
                 Code = source.VariationCode,
                 MainProductId = source.Product.Id,
-                CategoryId = source.Category.Id,
-                CatalogId = source.Category.CatalogId,
+                CategoryId = source.Product.CategoryId,
+                CatalogId = source.Product.CatalogId,
             };
             return variation;
         }

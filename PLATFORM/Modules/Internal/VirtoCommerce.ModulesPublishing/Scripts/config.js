@@ -5,40 +5,49 @@ if (AppDependencies != undefined) {
     AppDependencies.push(moduleTemplateName);
 }
 
-
 angular.module(moduleTemplateName, [])
-.config(['$stateProvider', function ($stateProvider) {
-      $stateProvider
-          .state('workspace.modulesPublishing', {
-              url: '/modulesPublishing',
-              templateUrl: '$(Platform)/Scripts/common/templates/home.tpl.html',
-              controller: [
-                  '$scope', 'platformWebApp.bladeNavigationService', function ($scope, bladeNavigationService) {
-                      var blade = {
-                          id: 'modulesPublishing',
-                          title: 'Modules publishing',
-                          breadcrumbs: [],
-                          subtitle: 'Install or update modules',
-                          controller: 'virtoCommerce.modulesPublishing.modulesListController',
-                          template: 'Modules/$(VirtoCommerce.ModulesPublishing)/Scripts/blades/modules-list.tpl.html',
-                          isClosingDisabled: true
-                      };
-                      bladeNavigationService.showBlade(blade);
-                      $scope.moduleName = 'vc-modulesPublishing';
-                  }
-              ]
-          });
-    }
-  ])
 .run(
-  ['platformWebApp.mainMenuService', '$state', function (mainMenuService, $state) {
-      //Register module in main menu
-      var menuItem = {
-          path: 'configuration/modulesPublishing',
-          icon: 'fa fa-cube',
-          title: 'Modules publishing',
-          priority: 120,
-          action: function () { $state.go('workspace.modulesPublishing'); }
-      };
-      mainMenuService.addMenuItem(menuItem);
-  }]);
+  ['platformWebApp.mainMenuService', '$state', 'virtoCommerce.catalogModule.catalogImportService', 'platformWebApp.pushNotificationTemplateResolver', 'platformWebApp.bladeNavigationService',
+      function (mainMenuService, $state, catalogImportService, notificationTemplateResolver, bladeNavigationService) {
+          var blade = {
+              id: 'modulesPublishing',
+              name: 'Publishing modules',
+              description: 'Publish modules, using packages',
+              icon: 'fa fa-download',
+              title: "Publishing modules",
+              controller: 'virtoCommerce.modulesPublishing.modulesPublishingController',
+              template: 'Modules/$(VirtoCommerce.ModulesPublishing)/Scripts/blades/modules-publishing.tpl.html',
+          }
+          catalogImportService.register(blade);
+
+          var historyPublishingTemplate =
+            {
+                priority: 900,
+                satisfy: function (notify, place) { return place == 'history' && (notify.notifyType == 'ModulePublishingPushNotification'); },
+                template: '$(Platform)/Scripts/app/exportImport/notifications/history.tpl.html',
+                action: function (notify) {
+                    var blade = {
+                        id: 'modulesPublishingNotification',
+                        controller: 'virtoCommerce.modulesPublishing.modulesPublishingController',
+                        template: 'Modules/$(VirtoCommerce.ModulesPublishing)/Scripts/blades/modules-publishing.tpl.html',
+                        icon: 'fa fa-download',
+                        title: "Publishing modules",
+                        notification: notify
+                    };
+                    bladeNavigationService.showBlade(blade);
+                }
+            };
+          notificationTemplateResolver.register(historyPublishingTemplate);
+
+          //var menuPublishingTemplate =
+          //    {
+          //        priority: 900,
+          //        satisfy: function (notify, place) { return place == 'menu' && notify.notifyType == 'ModulePublishingPushNotification'; },
+          //        template: 'Modules/$(VirtoCommerce.ModulesPublishing)/Scripts/blades/notifications/publishing.menu.tpl.html',
+          //        action: function (notify) { $state.go('notificationsHistory', notify) }
+          //    };
+          //notificationTemplateResolver.register(menuPublishingTemplate);
+
+      }]);
+
+

@@ -3,5 +3,6 @@
     return $resource('api/modulespublishing/', {}, {
         getModules: { method: 'GET', url: 'api/modulespublishing/sources/', isArray: true },
         runPublish: { method: 'POST', url: 'api/modulespublishing/publish' },
+        runImport: { method: 'POST', url: 'api/modulespublishing/import' },
     });
 }]);
