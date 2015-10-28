@@ -1,29 +1,26 @@
 ﻿<div class="blade-content">
     <div class="blade-inner">
-        <div class="inner-block">
-            <div class="form" ng-if="blade.notification">
-                <div class="block">
-                    <div>
-                        <div class="text">{{blade.notification.description}}</div>
-                        <div class="sub-t">Total: {{blade.notification.totalCount}}</div>
-                        <div class="sub-t">Processed: {{blade.notification.processedCount}}</div>
-                        <div class="sub-t">Added: {{blade.notification.createdCount}}</div>
-                        <div class="sub-t">Updated: {{blade.notification.updatedCount}}</div>
-                        <div class="block" ng-if="blade.notification.created">
-                            <p ng-class="{'no-data': blade.notification.created}" class="text">Start — <i class="fa fa-clock-o"></i> <span am-time-ago="blade.notification.created"></span></p>
-                        </div>
-                        <div class="block" ng-if="blade.notification.finished">
-                            <p ng-class="{'no-data': blade.notification.finished}" class="text">End — <i class="fa fa-clock-o"></i> <span am-time-ago="blade.notification.finished"></span></p>
-                            <div class="sub-t">Import finished</div>
-                        </div>
+        <div class="inner-block" ng-if="blade.notification">
+            <div class="block">
+                <div class="sub-t">{{blade.notification.description}}</div>
+            </div>
+            <div class="block">
+                <div class="text">Total: <span class="alt-description">{{blade.notification.totalCount}}</span></div>
+                <div class="text">Processed: <span class="alt-description">{{blade.notification.processedCount}}</span></div>
+                <div class="text">Added: <span class="alt-description">{{blade.notification.createdCount}}</span></div>
+                <div class="text">Updated: <span class="alt-description">{{blade.notification.updatedCount}}</span></div>
+            </div>
+            <div class="block" ng-if="blade.notification.created">
+                <p ng-class="{'no-data': blade.notification.created}" class="text">Start — <i class="fa fa-clock-o"></i> <span am-time-ago="blade.notification.created"></span></p>
+            </div>
+            <div class="block" ng-if="blade.notification.finished">
+                <p ng-class="{'no-data': blade.notification.finished}" class="text">End — <i class="fa fa-clock-o"></i> <span am-time-ago="blade.notification.finished"></span></p>
+            </div>
 
-                        <div ng-if="blade.notification.errorCount > 0">
-                            <span class="sub-t">Errors</span>
-                            <div class="log">
-                                <p ng-repeat="error in blade.notification.errors track by $index" class="error">{{error}}</p>
-                            </div>
-                        </div>
-                    </div>
+            <div ng-if="blade.notification.errorCount > 0">
+                <span class="sub-t">Errors</span>
+                <div class="log">
+                    <p ng-repeat="error in blade.notification.errors track by $index" class="error">{{error}}</p>
                 </div>
             </div>
         </div>

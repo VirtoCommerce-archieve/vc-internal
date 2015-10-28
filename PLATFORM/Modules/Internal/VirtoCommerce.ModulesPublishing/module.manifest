@@ -33,18 +33,19 @@
     </scripts>
 
     <settings>
-        <group name="General">
+        <group name="App store import">
             <setting>
-                <name>VirtoCommerce.ModulesPublishing.General.SourcePath</name>
+                <name>VirtoCommerce.ModulesPublishing.AppStoreImport.SourcePath</name>
                 <valueType>string</valueType>
-                <title>Modules path</title>
-                <description>Specify a path for the imported modules</description>
+                <defaultValue>~/Source</defaultValue>
+                <title>Source path</title>
+                <description>Relation path of source modules</description>
             </setting>
             <setting>
-                <name>VirtoCommerce.ModulesPublishing.General.NewAppCategory</name>
+                <name>VirtoCommerce.ModulesPublishing.AppStoreImport.NewAppCategoryCode</name>
                 <valueType>string</valueType>
-                <title>Category of wew applications</title>
-                <description>All new applications added to the caregory</description>
+                <title>Code category</title>
+                <description>Category of new applications</description>
             </setting>
         </group>
     </settings>

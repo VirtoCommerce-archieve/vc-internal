@@ -8,7 +8,6 @@ using VirtoCommerce.Domain.Catalog.Model;
 using VirtoCommerce.Platform.Core.PushNotifications;
 using Microsoft.Practices.ServiceLocation;
 using VirtoCommerce.Platform.Core.Settings;
-using VirtoCommerce.ModulesPublishing.Model;
 using System.IO.Compression;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Asset;
@@ -16,14 +15,15 @@ using VirtoCommerce.ModulesPublishing.Import;
 
 namespace VirtoCommerce.CatalogModule.Web.ExportImport
 {
-    public enum PublishingResult
-    {
-        Product,
-        Variation,
-        None
-    }
     public sealed class ModuleImporter : IModuleImporter
     {
+        private enum PublishingResult
+        {
+            Product,
+            Variation,
+            None
+        }
+
         private readonly ICatalogService _catalogService;
         private readonly ICategoryService _categoryService;
         private readonly IItemService _productService;
@@ -50,20 +50,13 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
             var settingsManager = ServiceLocator.Current.GetInstance<ISettingsManager>();
             var progressInfo = new ImportProcessInfo();
 
-            if (string.IsNullOrEmpty(importManifest.ModulesPath) || string.IsNullOrEmpty(importManifest.NewAppCategoryCode))
-            {
-                progressInfo.Errors.Add("Set setting before publish modules.");
-                progressCallback(progressInfo);
-            }
-
             var newAppCategory = GetCategoriesByCode(importManifest.NewAppCategoryCode, importManifest.CatalodId);
 
-            progressInfo.Description = string.Format("Source folder: {0}", importManifest.ModulesPath);
+            progressInfo.Description = "Importing ...";
             progressCallback(progressInfo);
 
 
             string path = importManifest.ModulesPath;
-            var result = new List<SourceModuleManifest>();
             var zipModulePaths = Directory.GetFiles(path);
             progressInfo.TotalCount = zipModulePaths.Count();
 
@@ -91,7 +84,7 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
 
                 if (manifest != null)
                 {
-                    var publishingResult = Publish(manifest, importManifest.CatalodId, newAppCategory, importManifest.AssetFolder, zipModulePath, icon);
+                    var publishingResult = Publish(manifest, importManifest, newAppCategory, zipModulePath, icon);
 
                     progressInfo.CreatedCount += publishingResult == PublishingResult.Product ? 1 : 0;
                     progressInfo.UpdatedCount += publishingResult == PublishingResult.Variation ? 1 : 0;
@@ -101,13 +94,13 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
             }
         }
 
-        private PublishingResult Publish(ModuleManifest manifest, string catalodId, Category defaultCategory, string moduleAssetFolder, string zipModulePath, byte[] icon)
+        private PublishingResult Publish(ModuleManifest manifest, ImportManifest importManifest, Category defaultCategory, string zipModulePath, byte[] icon)
         {
             var result = PublishingResult.None;
             var variationCode = string.Format("{0}-{1}", manifest.Id, manifest.Version);
             Image image = null;
 
-            var product = GetProductByCode(manifest.Id, catalodId);
+            var product = GetProductByCode(manifest.Id, importManifest.CatalodId);
 
             if (product == null)
             {
@@ -121,14 +114,14 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
             }
 
             //add variation + asset
-            var variation = GetProductByCode(variationCode, catalodId);
+            var variation = GetProductByCode(variationCode, importManifest.CatalodId);
             if (variation == null)
             {
                 //add variation
                 variation = CreateVariation(manifest, product, variationCode);
                 AddImage(variation, image ?? UploadProductImage(manifest.IconUrl, variationCode, icon));
 
-                var assetUrl = UploadAsset(zipModulePath, moduleAssetFolder);
+                var assetUrl = UploadAsset(zipModulePath, importManifest.AssetFolder);
                 variation.Assets = new List<Asset>();
                 variation.Assets.Add(new Asset { Url = assetUrl, Name = variationCode });
 

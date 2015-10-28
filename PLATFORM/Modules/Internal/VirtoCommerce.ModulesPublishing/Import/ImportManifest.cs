@@ -11,8 +11,6 @@ namespace VirtoCommerce.ModulesPublishing.Import
         {
             ManifestFileName = "module.manifest";
             AssetFolder = "Install";
-            NewAppCategoryCode = "New";
-            ModulesPath = "~/modules";
         }
         public string ManifestFileName { get; set; }
         public string AssetFolder { get; set; }

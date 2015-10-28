@@ -125,14 +125,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Controllers\Api\ModulesPublishingController.cs" />
-    <Compile Include="Converters\ManifestConverter.cs" />
     <Compile Include="Import\IModuleImporter.cs" />
     <Compile Include="Import\ImportManifest.cs" />
     <Compile Include="Import\ImportProcessInfo.cs" />
     <Compile Include="Import\ModuleImporter.cs" />
     <Compile Include="Import\ImportPushNotification.cs" />
-    <Compile Include="Model\SourceModuleManifest.cs" />
-    <Compile Include="Model\SourceModel.cs" />
     <Compile Include="Module.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

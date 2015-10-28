@@ -33,22 +33,37 @@ namespace VirtoCommerce.ModulesPublishing.Controllers.Api
         [Route("publish")]
         public IHttpActionResult Publish([FromBody]string catalogId)
         {
+            var settingsManager = ServiceLocator.Current.GetInstance<ISettingsManager>();
+            var sourcePath = settingsManager.GetValue("VirtoCommerce.ModulesPublishing.AppStoreImport.SourcePath", String.Empty);
+
+            var importManifest = new ImportManifest
+            {
+                CatalodId = catalogId,
+                NewAppCategoryCode = settingsManager.GetValue("VirtoCommerce.ModulesPublishing.AppStoreImport.NewAppCategoryCode", String.Empty),
+                ModulesPath = HttpContext.Current.Server.MapPath(sourcePath)
+            };
+
             var notification = new ModulePublishingPushNotification(CurrentPrincipal.GetCurrentUserName())
             {
-                Title = "Publishing modules task",
-                Description = "Publishing task added and will start soon...."
+                Title = "Import applications task",
+                Description = "Task added and will start soon...."
             };
+
+            if (string.IsNullOrEmpty(importManifest.NewAppCategoryCode))
+            {
+                notification.Errors.Add("Set 'Code category' setting, before import.");
+            }
+            if (string.IsNullOrEmpty(sourcePath))
+            {
+                notification.Errors.Add("Set 'Source path' setting, before import.");
+            }
+
+            if (notification.Errors.Count == 0)
+            {
+                BackgroundJob.Enqueue(() => ModulesImportBackground(importManifest, notification));
+            }
+
             _pushNotifier.Upsert(notification);
-
-            var importManifest = new ImportManifest();
-            var settingsManager = ServiceLocator.Current.GetInstance<ISettingsManager>();
-            var sourcePath = settingsManager.GetValue("VirtoCommerce.ModulesPublishing.General.SourcePath", String.Empty);
-            importManifest.ModulesPath = HttpContext.Current.Server.MapPath(sourcePath);
-            importManifest.NewAppCategoryCode = settingsManager.GetValue("VirtoCommerce.ModulesPublishing.General.NewAppCategory", String.Empty);
-            importManifest.CatalodId = catalogId;
-
-            BackgroundJob.Enqueue(() => ModulesImportBackground(importManifest, notification));
-
             return Ok(notification);
 
         }
@@ -73,6 +88,7 @@ namespace VirtoCommerce.ModulesPublishing.Controllers.Api
             finally
             {
                 pushNotification.Finished = DateTime.UtcNow;
+                pushNotification.Description = "Import finished";
                 _pushNotifier.Upsert(pushNotification);
             }
 
