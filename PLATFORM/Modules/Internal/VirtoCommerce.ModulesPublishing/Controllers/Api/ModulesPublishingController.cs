@@ -13,6 +13,7 @@ using Hangfire;
 using Omu.ValueInjecter;
 using VirtoCommerce.Platform.Data.Common;
 using VirtoCommerce.CatalogModule.Web.ExportImport;
+using System.IO;
 
 namespace VirtoCommerce.ModulesPublishing.Controllers.Api
 {
@@ -34,13 +35,13 @@ namespace VirtoCommerce.ModulesPublishing.Controllers.Api
         public IHttpActionResult Publish([FromBody]string catalogId)
         {
             var settingsManager = ServiceLocator.Current.GetInstance<ISettingsManager>();
-            var sourcePath = settingsManager.GetValue("VirtoCommerce.ModulesPublishing.AppStoreImport.SourcePath", String.Empty);
+            var packagesPath = settingsManager.GetValue("VirtoCommerce.ModulesPublishing.AppStoreImport.PackagesPath", String.Empty);
 
             var importManifest = new ImportManifest
             {
                 CatalodId = catalogId,
-                NewAppCategoryCode = settingsManager.GetValue("VirtoCommerce.ModulesPublishing.AppStoreImport.NewAppCategoryCode", String.Empty),
-                ModulesPath = HttpContext.Current.Server.MapPath(sourcePath)
+                DefaultCategoryCode = settingsManager.GetValue("VirtoCommerce.ModulesPublishing.AppStoreImport.DefaultCategoryCode", String.Empty),
+                PackagesPath = HttpContext.Current.Server.MapPath(packagesPath)
             };
 
             var notification = new ModulePublishingPushNotification(CurrentPrincipal.GetCurrentUserName())
@@ -49,13 +50,17 @@ namespace VirtoCommerce.ModulesPublishing.Controllers.Api
                 Description = "Task added and will start soon...."
             };
 
-            if (string.IsNullOrEmpty(importManifest.NewAppCategoryCode))
+            if (string.IsNullOrEmpty(importManifest.DefaultCategoryCode))
             {
-                notification.Errors.Add("Set 'Code category' setting, before import.");
+                notification.Errors.Add("Set 'Category code' setting, before import.");
             }
-            if (string.IsNullOrEmpty(sourcePath))
+            if (string.IsNullOrEmpty(packagesPath))
             {
-                notification.Errors.Add("Set 'Source path' setting, before import.");
+                notification.Errors.Add("Set 'Packages folder' setting, before import.");
+            }
+            if (!Directory.Exists(importManifest.PackagesPath))
+            {
+                notification.Errors.Add(string.Format("Path doesn't exists: {0}", importManifest.PackagesPath));
             }
 
             if (notification.Errors.Count == 0)
@@ -83,7 +88,7 @@ namespace VirtoCommerce.ModulesPublishing.Controllers.Api
             }
             catch (Exception ex)
             {
-                pushNotification.Errors.Add(ex.ExpandExceptionMessage());
+                pushNotification.Errors.Add(ex.ToString());
             }
             finally
             {

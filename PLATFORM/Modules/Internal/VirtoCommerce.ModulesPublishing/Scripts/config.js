@@ -11,9 +11,9 @@ angular.module(moduleTemplateName, [])
       function (mainMenuService, $state, catalogImportService, notificationTemplateResolver, bladeNavigationService) {
           var blade = {
               id: 'modulesPublishing',
-              name: 'App store import',
-              title: "App store import",
-              description: 'Import applications from packages',
+              name: 'App Store import',
+              title: "App Store import",
+              description: 'Import modules from packages',
               icon: 'fa fa-download',
               controller: 'virtoCommerce.modulesPublishing.modulesPublishingController',
               template: 'Modules/$(VirtoCommerce.ModulesPublishing)/Scripts/blades/modules-publishing.tpl.html',
@@ -31,7 +31,7 @@ angular.module(moduleTemplateName, [])
                         controller: 'virtoCommerce.modulesPublishing.modulesPublishingController',
                         template: 'Modules/$(VirtoCommerce.ModulesPublishing)/Scripts/blades/modules-publishing.tpl.html',
                         icon: 'fa fa-download',
-                        title: "App store import",
+                        title: "App Store import",
                         notification: notify
                     };
                     bladeNavigationService.showBlade(blade);

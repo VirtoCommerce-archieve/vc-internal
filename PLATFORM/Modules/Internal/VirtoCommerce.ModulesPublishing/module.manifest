@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <module>
     <id>VirtoCommerce.ModulesPublishing</id>
-    <version>1.0.0</version>
+    <version>1.0.7</version>
     <platformVersion>2.5.0</platformVersion>
     <dependencies>
         <dependency id="VirtoCommerce.Core" version="2.5.0" />
@@ -25,27 +25,25 @@
     <assemblyFile>VirtoCommerce.ModulesPublishing.dll</assemblyFile>
     <moduleType>VirtoCommerce.ModulesPublishing.Module, VirtoCommerce.ModulesPublishing</moduleType>
 
-    <styles>
-        <directory virtualPath="$/Content/css" searchPattern="*.css" searchSubdirectories="true" />
-    </styles>
     <scripts>
         <directory virtualPath="$/Scripts" searchPattern="*.js" searchSubdirectories="true" />
     </scripts>
 
     <settings>
-        <group name="App store import">
+        <group name="App Store import">
             <setting>
-                <name>VirtoCommerce.ModulesPublishing.AppStoreImport.SourcePath</name>
+                <name>VirtoCommerce.ModulesPublishing.AppStoreImport.PackagesPath</name>
                 <valueType>string</valueType>
-                <defaultValue>~/Source</defaultValue>
-                <title>Source path</title>
-                <description>Relation path of source modules</description>
+                <defaultValue>~/App_Data/ModulesPackages</defaultValue>
+                <title>Packages folder</title>
+                <description>Path to the packages of modules folder</description>
             </setting>
             <setting>
-                <name>VirtoCommerce.ModulesPublishing.AppStoreImport.NewAppCategoryCode</name>
+                <name>VirtoCommerce.ModulesPublishing.AppStoreImport.DefaultCategoryCode</name>
                 <valueType>string</valueType>
-                <title>Code category</title>
-                <description>Category of new applications</description>
+                <title>Category code</title>
+                <defaultValue>NewModules</defaultValue>
+                <description>Category for the newest modules</description>
             </setting>
         </group>
     </settings>

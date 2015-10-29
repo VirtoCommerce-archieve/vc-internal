@@ -50,13 +50,13 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
             var settingsManager = ServiceLocator.Current.GetInstance<ISettingsManager>();
             var progressInfo = new ImportProcessInfo();
 
-            var newAppCategory = GetCategoriesByCode(importManifest.NewAppCategoryCode, importManifest.CatalodId);
+            var newAppCategory = GetCategoriesByCode(importManifest.DefaultCategoryCode, importManifest.CatalodId);
 
             progressInfo.Description = "Importing ...";
             progressCallback(progressInfo);
 
 
-            string path = importManifest.ModulesPath;
+            string path = importManifest.PackagesPath;
             var zipModulePaths = Directory.GetFiles(path);
             progressInfo.TotalCount = zipModulePaths.Count();
 
@@ -97,7 +97,7 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
         private PublishingResult Publish(ModuleManifest manifest, ImportManifest importManifest, Category defaultCategory, string zipModulePath, byte[] icon)
         {
             var result = PublishingResult.None;
-            var variationCode = string.Format("{0}-{1}", manifest.Id, manifest.Version);
+            var variationCode = string.Format("{0}_{1}", manifest.Id, manifest.Version);
             Image image = null;
 
             var product = GetProductByCode(manifest.Id, importManifest.CatalodId);
@@ -106,7 +106,7 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
             {
                 //add product
                 product = CreateProduct(manifest, defaultCategory);
-                image = UploadProductImage(manifest.IconUrl, variationCode, icon);
+                image = UploadProductImage(variationCode, Path.GetExtension(manifest.IconUrl), icon);
                 AddImage(product, image);
 
                 product = _productService.Create(product);
@@ -119,7 +119,7 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
             {
                 //add variation
                 variation = CreateVariation(manifest, product, variationCode);
-                AddImage(variation, image ?? UploadProductImage(manifest.IconUrl, variationCode, icon));
+                AddImage(variation, image ?? UploadProductImage(variationCode, Path.GetExtension(manifest.IconUrl), icon));
 
                 var assetUrl = UploadAsset(zipModulePath, importManifest.AssetFolder);
                 variation.Assets = new List<Asset>();
@@ -216,18 +216,17 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
             return criteria;
         }
 
-        private Image UploadProductImage(string imageFileName, string imageName, byte[] icon)
+        private Image UploadProductImage(string fileName, string extension, byte[] icon)
         {
-            imageFileName = Path.GetFileName(imageFileName);
-            var extention = Path.GetExtension(imageFileName);
-            imageName = Path.ChangeExtension(imageName, extention);
-            if (!string.IsNullOrEmpty(imageFileName) && icon != null)
+            fileName = Path.ChangeExtension(fileName, extension);
+            fileName = CorrectFileName(fileName);
+            if (!string.IsNullOrEmpty(fileName) && icon != null)
             {
 
                 using (MemoryStream ms = new MemoryStream(icon))
                 {
                     var image = new Image();
-                    image.Url = _blobStorageProvider.Upload(new UploadStreamInfo { FileByteStream = ms, FileName = imageName, FolderName = "catalog" });
+                    image.Url = _blobStorageProvider.Upload(new UploadStreamInfo { FileByteStream = ms, FileName = fileName, FolderName = "catalog" });
                     return image;
                 }
             }
@@ -238,15 +237,25 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
         {
             using (var zipStream = new FileStream(path, FileMode.Open))
             {
+                var fileName = CorrectFileName(Path.GetFileName(path));
                 var asset = new UploadStreamInfo
                 {
-                    FileName = Path.GetFileName(path),
+                    FileName = fileName,
                     FolderName = assetFolderName,
                     FileByteStream = zipStream
                 };
                 var result = _blobStorageProvider.Upload(asset);
                 return result;
             }
+        }
+
+        private string CorrectFileName(string fullPath)
+        {
+            var path = Path.GetFullPath(fullPath);
+            var fileName = Path.GetFileName(fullPath);
+            fileName = Path.ChangeExtension(Path.GetFileNameWithoutExtension(fileName).Replace('.', '_'), Path.GetExtension(fileName));
+            var result = Path.Combine(path, fileName);
+            return result;
         }
 
     }
