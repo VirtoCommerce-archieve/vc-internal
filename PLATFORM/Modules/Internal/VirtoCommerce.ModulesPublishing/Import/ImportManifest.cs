@@ -10,10 +10,8 @@ namespace VirtoCommerce.ModulesPublishing.Import
         public ImportManifest()
         {
             ManifestFileName = "module.manifest";
-            AssetFolder = "packages";
         }
         public string ManifestFileName { get; set; }
-        public string AssetFolder { get; set; }
         public string PackagesPath { get; set; }
         public string DefaultCategoryCode { get; set; }
         public string CatalodId { get; set; }

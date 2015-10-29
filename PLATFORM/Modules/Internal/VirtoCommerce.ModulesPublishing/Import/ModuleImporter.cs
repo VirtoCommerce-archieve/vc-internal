@@ -12,6 +12,8 @@ using System.IO.Compression;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Asset;
 using VirtoCommerce.ModulesPublishing.Import;
+using System.Web;
+using System.Text.RegularExpressions;
 
 namespace VirtoCommerce.CatalogModule.Web.ExportImport
 {
@@ -97,16 +99,16 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
         private PublishingResult Publish(ModuleManifest manifest, ImportManifest importManifest, Category defaultCategory, string zipModulePath, byte[] icon)
         {
             var result = PublishingResult.None;
-            var variationCode = string.Format("{0}_{1}", manifest.Id, manifest.Version);
-            Image image = null;
 
-            var product = GetProductByCode(manifest.Id, importManifest.CatalodId);
+            var productCode = manifest.Id;
+            productCode = Regex.Replace(productCode, @"[^A-Za-z0-9_]", "_");
+            var product = GetProductByCode(productCode, importManifest.CatalodId);
 
             if (product == null)
             {
                 //add product
-                product = CreateProduct(manifest, defaultCategory);
-                image = UploadProductImage(variationCode, Path.GetExtension(manifest.IconUrl), icon);
+                product = CreateProduct(manifest, defaultCategory, productCode);
+                var image = UploadProductImage(product.Code, Path.GetExtension(manifest.IconUrl), icon);
                 AddImage(product, image);
 
                 product = _productService.Create(product);
@@ -114,32 +116,35 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
             }
 
             //add variation + asset
+            var variationCode = string.Format("{0}_{1}", manifest.Id, manifest.Version);
+            variationCode = Regex.Replace(variationCode, @"[^A-Za-z0-9_]", "_");
             var variation = GetProductByCode(variationCode, importManifest.CatalodId);
+
             if (variation == null)
             {
-                //add variation
                 variation = CreateVariation(manifest, product, variationCode);
-                AddImage(variation, image ?? UploadProductImage(variationCode, Path.GetExtension(manifest.IconUrl), icon));
 
-                var assetUrl = UploadAsset(zipModulePath, importManifest.AssetFolder);
+                var assetUrl = UploadAsset(zipModulePath, variation.Code);
                 variation.Assets = new List<Asset>();
-                variation.Assets.Add(new Asset { Url = assetUrl, Name = variationCode });
+                variation.Assets.Add(new Asset { Url = assetUrl, Name = Path.GetFileName(assetUrl) });
 
-                _productService.Create(variation);
                 if (result == PublishingResult.None)
                 {
-                    result = result = PublishingResult.Variation;
+                    var image = UploadProductImage(variation.Code, Path.GetExtension(manifest.IconUrl), icon);
+                    AddImage(variation, image);
+                    result = PublishingResult.Variation;
                 }
+                _productService.Create(variation);
             }
             return result;
         }
 
-        private CatalogProduct CreateProduct(ModuleManifest manifest, Category defaultCategory)
+        private CatalogProduct CreateProduct(ModuleManifest manifest, Category defaultCategory, string productCode)
         {
             var product = new CatalogProduct
             {
                 Name = manifest.Title,
-                Code = manifest.Id,
+                Code = productCode,
                 CategoryId = defaultCategory.Id,
                 CatalogId = defaultCategory.CatalogId,
             };
@@ -216,46 +221,35 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
             return criteria;
         }
 
-        private Image UploadProductImage(string fileName, string extension, byte[] icon)
+        private Image UploadProductImage(string folder, string extention, byte[] icon)
         {
-            fileName = Path.ChangeExtension(fileName, extension);
-            fileName = CorrectFileName(fileName);
-            if (!string.IsNullOrEmpty(fileName) && icon != null)
+            using (MemoryStream ms = new MemoryStream(icon))
             {
-
-                using (MemoryStream ms = new MemoryStream(icon))
+                var temp = new UploadStreamInfo
                 {
-                    var image = new Image();
-                    image.Url = _blobStorageProvider.Upload(new UploadStreamInfo { FileByteStream = ms, FileName = fileName, FolderName = "catalog" });
-                    return image;
-                }
+                    FileName = HttpUtility.UrlDecode(Path.ChangeExtension("icon", extention)),
+                    FolderName = Path.Combine("catalog", folder),
+                    FileByteStream = ms,
+                };
+                var image = new Image();
+                image.Url = _blobStorageProvider.Upload(temp);
+                return image;
             }
-            return null;
         }
 
-        private string UploadAsset(string path, string assetFolderName)
+        private string UploadAsset(string path, string folder)
         {
             using (var zipStream = new FileStream(path, FileMode.Open))
             {
-                var fileName = CorrectFileName(Path.GetFileName(path));
                 var asset = new UploadStreamInfo
                 {
-                    FileName = fileName,
-                    FolderName = assetFolderName,
+                    FileName = HttpUtility.UrlDecode(Path.ChangeExtension(folder, "zip")),
+                    FolderName = Path.Combine("catalog", folder),
                     FileByteStream = zipStream
                 };
                 var result = _blobStorageProvider.Upload(asset);
                 return result;
             }
-        }
-
-        private string CorrectFileName(string fullPath)
-        {
-            var path = Path.GetFullPath(fullPath);
-            var fileName = Path.GetFileName(fullPath);
-            fileName = Path.ChangeExtension(Path.GetFileNameWithoutExtension(fileName).Replace('.', '_'), Path.GetExtension(fileName));
-            var result = Path.Combine(path, fileName);
-            return result;
         }
 
     }
