@@ -6,26 +6,16 @@ using VirtoCommerce.Platform.Core.Caching;
 using System.IO;
 using VirtoCommerce.Domain.Catalog.Model;
 using VirtoCommerce.Platform.Core.PushNotifications;
-using Microsoft.Practices.ServiceLocation;
-using VirtoCommerce.Platform.Core.Settings;
 using System.IO.Compression;
 using VirtoCommerce.Platform.Core.Modularity;
 using VirtoCommerce.Platform.Core.Asset;
-using VirtoCommerce.ModulesPublishing.Import;
 using System.Web;
 using System.Text.RegularExpressions;
 
-namespace VirtoCommerce.CatalogModule.Web.ExportImport
+namespace VirtoCommerce.ModulesPublishing.Import
 {
     public sealed class ModuleImporter : IModuleImporter
     {
-        private enum PublishingResult
-        {
-            Product,
-            Variation,
-            None
-        }
-
         private readonly ICatalogService _catalogService;
         private readonly ICategoryService _categoryService;
         private readonly IItemService _productService;
@@ -33,9 +23,20 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
         private readonly CacheManager _cacheManager;
         private readonly ICatalogSearchService _searchService;
         private readonly IBlobStorageProvider _blobStorageProvider;
+        private readonly IPropertyService _propertyService;
 
-        public ModuleImporter(ICatalogService catalogService, ICategoryService categoryService, IItemService productService, IBlobStorageProvider blobStorageProvider,
-                                IPushNotificationManager pushNotificationManager, CacheManager cacheManager, ICatalogSearchService searchService)
+        private Property[] _catalogProperties;
+        private Category _defaultCategory;
+        private enum PublishingResult
+        {
+            Product,
+            Variation,
+            None
+        }
+
+        public ModuleImporter(ICatalogService catalogService, ICategoryService categoryService, IItemService productService, 
+            IBlobStorageProvider blobStorageProvider, IPushNotificationManager pushNotificationManager, 
+            CacheManager cacheManager, ICatalogSearchService searchService, IPropertyService propertyService)
         {
             _catalogService = catalogService;
             _categoryService = categoryService;
@@ -44,127 +45,212 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
             _cacheManager = cacheManager;
             _searchService = searchService;
             _blobStorageProvider = blobStorageProvider;
+            _propertyService = propertyService;
         }
+
 
         // add not existing products or variations.
         public void DoImport(ImportManifest importManifest, Action<ImportProcessInfo> progressCallback)
         {
-            var settingsManager = ServiceLocator.Current.GetInstance<ISettingsManager>();
             var progressInfo = new ImportProcessInfo();
-
-            var newAppCategory = GetCategoriesByCode(importManifest.DefaultCategoryCode, importManifest.CatalodId);
-
             progressInfo.Description = "Importing ...";
             progressCallback(progressInfo);
 
-
-            string path = importManifest.PackagesPath;
-            var zipModulePaths = Directory.GetFiles(path);
+            _defaultCategory = GetCategoriesByCode(importManifest.DefaultCategoryCode, importManifest.CatalogId);
+            _catalogProperties = _propertyService.GetCatalogProperties(importManifest.CatalogId);
+            var zipModulePaths = Directory.GetFiles(importManifest.PackagesPath);
             progressInfo.TotalCount = zipModulePaths.Count();
 
             foreach (var zipModulePath in zipModulePaths)
             {
                 ModuleManifest manifest = null;
                 byte[] icon = null;
-
                 using (ZipArchive archive = ZipFile.OpenRead(zipModulePath))
                 {
-
                     var manifestEntry = archive.Entries.FirstOrDefault(x => x.Name == importManifest.ManifestFileName);
-                    if (manifestEntry != null)
+                    using (var manifestStream = manifestEntry.Open())
                     {
-                        using (var manifestStream = manifestEntry.Open())
-                        {
-                            manifest = ManifestReader.Read(manifestStream);
-                        }
-                        if (manifest != null)
-                        {
-                            icon = ReadIcon(archive, manifest.IconUrl);
-                        }
+                        manifest = ManifestReader.Read(manifestStream);
                     }
+
+                    icon = ReadIcon(archive, manifest.IconUrl);
                 }
 
-                if (manifest != null)
-                {
-                    var publishingResult = Publish(manifest, importManifest, newAppCategory, zipModulePath, icon);
+                var publishingResult = Publish(manifest, zipModulePath, icon);
 
-                    progressInfo.CreatedCount += publishingResult == PublishingResult.Product ? 1 : 0;
-                    progressInfo.UpdatedCount += publishingResult == PublishingResult.Variation ? 1 : 0;
-                    progressInfo.ProcessedCount++;
-                    progressCallback(progressInfo);
-                }
+                progressInfo.CreatedCount += publishingResult == PublishingResult.Product ? 1 : 0;
+                progressInfo.UpdatedCount += publishingResult == PublishingResult.Variation ? 1 : 0;
+                progressInfo.ProcessedCount++;
+                progressCallback(progressInfo);
             }
         }
 
-        private PublishingResult Publish(ModuleManifest manifest, ImportManifest importManifest, Category defaultCategory, string zipModulePath, byte[] icon)
+        /// <summary>
+        /// Publish given module to AppStore catalog
+        /// </summary>
+        private PublishingResult Publish(ModuleManifest manifest, string zipModulePath, byte[] icon)
         {
-            var result = PublishingResult.None;
-
+            var publishingResult = PublishingResult.None;
             var productCode = manifest.Id;
             productCode = Regex.Replace(productCode, @"[^A-Za-z0-9_]", "_");
-            var product = GetProductByCode(productCode, importManifest.CatalodId);
+            var product = GetProductByCode(productCode, _defaultCategory.Catalog.Id);
 
             if (product == null)
             {
                 //add product
-                product = CreateProduct(manifest, defaultCategory, productCode);
-                var image = UploadProductImage(product.Code, Path.GetExtension(manifest.IconUrl), icon);
-                AddImage(product, image);
+                product = new CatalogProduct
+                {
+                    Name = manifest.Title,
+                    Code = productCode,
+                    CategoryId = _defaultCategory.Id,
+                    CatalogId = _defaultCategory.CatalogId,
+                };
+
+                AddProperty(product, "Description", manifest.Description, PropertyValueType.LongText);
+
+                AddIcon(product, Path.GetExtension(manifest.IconUrl), icon);
 
                 product = _productService.Create(product);
-                result = PublishingResult.Product;
+                publishingResult = PublishingResult.Product;
             }
+            return AddVariation(product, manifest, icon, zipModulePath, publishingResult);
+        }
 
+        /// <summary>
+        /// Add variation to given product + asset + icon + properties
+        /// </summary>
+        private PublishingResult AddVariation(CatalogProduct product, ModuleManifest manifest, byte[] icon, string zipModulePath, PublishingResult publishingResult)
+        {
             //add variation + asset
             var variationCode = string.Format("{0}_{1}", manifest.Id, manifest.Version);
             variationCode = Regex.Replace(variationCode, @"[^A-Za-z0-9_]", "_");
-            var variation = GetProductByCode(variationCode, importManifest.CatalodId);
+            var variation = GetProductByCode(variationCode, _defaultCategory.Catalog.Id);
 
             if (variation == null)
             {
-                variation = CreateVariation(manifest, product, variationCode);
-
-                var assetUrl = UploadAsset(zipModulePath, variation.Code);
-                variation.Assets = new List<Asset>();
-                variation.Assets.Add(new Asset { Url = assetUrl, Name = Path.GetFileName(assetUrl) });
-
-                if (result == PublishingResult.None)
+                variation = new CatalogProduct
                 {
-                    var image = UploadProductImage(variation.Code, Path.GetExtension(manifest.IconUrl), icon);
-                    AddImage(variation, image);
-                    result = PublishingResult.Variation;
+                    Name = string.Format("{0} ({1})", manifest.Title, manifest.Version),
+                    Code = variationCode,
+                    MainProductId = product.Id,
+                    CategoryId = product.CategoryId,
+                    CatalogId = product.CatalogId,
+                };
+
+                AddProperty(variation, "Description", manifest.Description, PropertyValueType.LongText);
+                AddProperty(variation, "ReleaseNote", manifest.ReleaseNotes, PropertyValueType.LongText);
+                AddProperty(variation, "ReleaseVersion", manifest.Version, PropertyValueType.ShortText);
+                AddProperty(variation, "Compatibility", manifest.PlatformVersion, PropertyValueType.ShortText);
+                AddProperty(variation, "ReleaseDate", DateTime.UtcNow, PropertyValueType.DateTime);
+
+                AddAsset(variation, zipModulePath);
+
+                if (publishingResult == PublishingResult.None)
+                {
+                    AddIcon(variation, Path.GetExtension(manifest.IconUrl), icon);
+                    publishingResult = PublishingResult.Variation;
                 }
+
                 _productService.Create(variation);
             }
-            return result;
+            return publishingResult;
         }
 
-        private CatalogProduct CreateProduct(ModuleManifest manifest, Category defaultCategory, string productCode)
+        /// <summary>
+        /// Add property value to product
+        /// </summary>
+        private void AddProperty(CatalogProduct product, string propertyName, object value, PropertyValueType propertyValueType)
         {
-            var product = new CatalogProduct
+            var property = _catalogProperties.FirstOrDefault(x => x.Name == propertyName);
+            if (property != null)
             {
-                Name = manifest.Title,
-                Code = productCode,
-                CategoryId = defaultCategory.Id,
-                CatalogId = defaultCategory.CatalogId,
-            };
-            return product;
+                var propertyValue = new PropertyValue
+                {
+                    PropertyId = property.Id,
+                    PropertyName = property.Name,
+                    Value = value,
+                    ValueType = propertyValueType
+                };
+                if (product.PropertyValues == null)
+                {
+                    product.PropertyValues = new List<PropertyValue>();
+                }
+                product.PropertyValues.Add(propertyValue);
+            }
         }
 
-        private CatalogProduct CreateVariation(ModuleManifest manifest, CatalogProduct product, string variationCode)
+        /// <summary>
+        /// Add icon to given product
+        /// </summary>
+        private void AddIcon(CatalogProduct product, string extention, byte[] icon)
         {
-            var variationName = string.Format("{0} ({1})", manifest.Title, manifest.Version);
-            var variation = new CatalogProduct
+            if (icon != null)
             {
-                Name = variationName,
-                Code = variationCode,
-                MainProductId = product.Id,
-                CategoryId = product.CategoryId,
-                CatalogId = product.CatalogId,
-            };
-            return variation;
+                using (MemoryStream ms = new MemoryStream(icon))
+                {
+                    var temp = new UploadStreamInfo
+                    {
+                        FileName = HttpUtility.UrlDecode(Path.ChangeExtension("icon", extention)),
+                        FolderName = Path.Combine("catalog", product.Code),
+                        FileByteStream = ms,
+                    };
+                    var imageUrl = _blobStorageProvider.Upload(temp);
+                    if (!string.IsNullOrEmpty(imageUrl))
+                    {
+                        product.Images = new List<Image> { new Image { Url = imageUrl } };
+                    }
+                }
+            }
         }
 
+        /// <summary>
+        /// Add asset to given product
+        /// </summary>
+        private void AddAsset(CatalogProduct product, string path)
+        {
+            using (var zipStream = new FileStream(path, FileMode.Open))
+            {
+                var uploadStreamInfo = new UploadStreamInfo
+                {
+                    FileName = HttpUtility.UrlDecode(Path.ChangeExtension(product.Code, "zip")),
+                    FolderName = Path.Combine("catalog", product.Code),
+                    FileByteStream = zipStream
+                };
+
+                var assetUrl = _blobStorageProvider.Upload(uploadStreamInfo);
+                if (!string.IsNullOrEmpty(assetUrl))
+                {
+                    product.Assets = new List<Asset> { new Asset { Url = assetUrl, Name = Path.GetFileName(assetUrl) } };
+                }
+            }
+        }
+
+        /// <summary>
+        /// Get product by Code from given catalog 
+        /// </summary>
+        private CatalogProduct GetProductByCode(string code, string catalogId)
+        {
+            var responseGroup = ResponseGroup.WithProducts | ResponseGroup.WithVariations;
+            var criteria = new SearchCriteria { Count = 1, Start = 0, ResponseGroup = responseGroup, Code = code, CatalogId = catalogId, GetAllCategories = true };
+            var searchResponse = _searchService.Search(criteria);
+            return searchResponse.Products.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Get category by Code from given catalog 
+        /// </summary>
+        private Category GetCategoriesByCode(string code, string catalogId)
+        {
+            var responseGroup = ResponseGroup.WithCatalogs | ResponseGroup.WithCategories;
+            var criteria = new SearchCriteria { Count = 1, Start = 0, ResponseGroup = responseGroup, Code = code, CatalogId = catalogId, GetAllCategories = true };
+            var searchResponse = _searchService.Search(criteria);
+            return searchResponse.Categories.FirstOrDefault();
+        }
+
+        /// <summary>
+        /// Read icon of module from archive
+        /// </summary>
+        /// <returns></returns>
         private byte[] ReadIcon(ZipArchive archive, string iconPath)
         {
             var iconFileName = Path.GetFileName(iconPath);
@@ -173,83 +259,19 @@ namespace VirtoCommerce.CatalogModule.Web.ExportImport
             if (!string.IsNullOrEmpty(iconFileName))
             {
                 var iconEntry = archive.Entries.FirstOrDefault(x => x.Name == iconFileName);
-
-                using (var iconStream = iconEntry.Open())
+                if (iconEntry != null)
                 {
-                    using (MemoryStream ms = new MemoryStream())
+                    using (var iconStream = iconEntry.Open())
                     {
-                        iconStream.CopyTo(ms);
-                        result = ms.ToArray();
+                        using (MemoryStream ms = new MemoryStream())
+                        {
+                            iconStream.CopyTo(ms);
+                            result = ms.ToArray();
+                        }
                     }
                 }
             }
             return result;
-        }
-
-        private void AddImage(CatalogProduct product, Image image)
-        {
-            if (image != null)
-            {
-                product.Images = new List<Image>();
-                product.Images.Add(image);
-            }
-        }
-
-        private CatalogProduct GetProductByCode(string code, string catalogId)
-        {
-            var criteria = GetSearchCriteria(ResponseGroup.WithProducts | ResponseGroup.WithVariations, code, catalogId);
-            var searchResponse = _searchService.Search(criteria);
-            return searchResponse.Products.FirstOrDefault();
-        }
-
-        private Category GetCategoriesByCode(string code, string catalogId)
-        {
-            var criteria = GetSearchCriteria(ResponseGroup.WithCatalogs | ResponseGroup.WithCategories, code, catalogId);
-            criteria.GetAllCategories = true;
-            var searchResponse = _searchService.Search(criteria);
-            return searchResponse.Categories.FirstOrDefault();
-        }
-
-        private SearchCriteria GetSearchCriteria(ResponseGroup responseGroup, string code, string catalogId)
-        {
-            var criteria = new SearchCriteria { Count = 1, Start = 0, ResponseGroup = responseGroup, Code = code };
-            if (string.IsNullOrEmpty(catalogId))
-            {
-                criteria.CatalogId = catalogId;
-            }
-
-            return criteria;
-        }
-
-        private Image UploadProductImage(string folder, string extention, byte[] icon)
-        {
-            using (MemoryStream ms = new MemoryStream(icon))
-            {
-                var temp = new UploadStreamInfo
-                {
-                    FileName = HttpUtility.UrlDecode(Path.ChangeExtension("icon", extention)),
-                    FolderName = Path.Combine("catalog", folder),
-                    FileByteStream = ms,
-                };
-                var image = new Image();
-                image.Url = _blobStorageProvider.Upload(temp);
-                return image;
-            }
-        }
-
-        private string UploadAsset(string path, string folder)
-        {
-            using (var zipStream = new FileStream(path, FileMode.Open))
-            {
-                var asset = new UploadStreamInfo
-                {
-                    FileName = HttpUtility.UrlDecode(Path.ChangeExtension(folder, "zip")),
-                    FolderName = Path.Combine("catalog", folder),
-                    FileByteStream = zipStream
-                };
-                var result = _blobStorageProvider.Upload(asset);
-                return result;
-            }
         }
 
     }

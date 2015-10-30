@@ -10,13 +10,18 @@ function ($injector, $rootScope, $scope, api, bladeNavigationService) {
             if (notification.errorCount > 0) {
                 bladeNavigationService.setError('Publish error', blade);
             }
+            else if (blade.id == "modulesPublishing") {
+                if (blade.notification.finished) {
+                    blade.parentBlade.refresh();
+                }
+            }
+
         }
     });
 
-    if (blade.id == "modulesPublishing")
-    {
-        var parameters = { catalogId: blade.catalog.id };
-        api.runPublish({}, parameters,
+    if (blade.id == "modulesPublishing") {
+        var postData = { catalogId: blade.catalog.id };
+        api.runPublish(postData,
             function (data) { blade.notification = data; },
             function (error) { bladeNavigationService.setError('Error ' + error.status, blade); });
     }

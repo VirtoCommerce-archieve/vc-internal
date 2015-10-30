@@ -1,5 +1,5 @@
 ﻿using Microsoft.Practices.Unity;
-using VirtoCommerce.CatalogModule.Web.ExportImport;
+using VirtoCommerce.ModulesPublishing.Import;
 using VirtoCommerce.Platform.Core.Modularity;
 
 namespace VirtoCommerce.ModulesPublishing

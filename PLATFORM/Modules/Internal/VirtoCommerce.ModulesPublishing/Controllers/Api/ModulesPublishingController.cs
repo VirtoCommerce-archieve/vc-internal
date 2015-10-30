@@ -1,19 +1,15 @@
 ﻿using System;
+using System.IO;
 using System.Web;
 using System.Web.Http;
 using System.Web.Http.Description;
+using Hangfire;
+using Omu.ValueInjecter;
 using Microsoft.Practices.ServiceLocation;
 using VirtoCommerce.Platform.Core.Settings;
-using VirtoCommerce.Platform.Core.Asset;
-using VirtoCommerce.Domain.Catalog.Services;
 using VirtoCommerce.ModulesPublishing.Import;
 using VirtoCommerce.Platform.Core.Common;
 using VirtoCommerce.Platform.Core.PushNotifications;
-using Hangfire;
-using Omu.ValueInjecter;
-using VirtoCommerce.Platform.Data.Common;
-using VirtoCommerce.CatalogModule.Web.ExportImport;
-using System.IO;
 
 namespace VirtoCommerce.ModulesPublishing.Controllers.Api
 {
@@ -31,18 +27,14 @@ namespace VirtoCommerce.ModulesPublishing.Controllers.Api
 
         [HttpPost]
         [ResponseType(typeof(void))]
-        [Route("publish")]
-        public IHttpActionResult Publish([FromBody]string catalogId)
+        [Route("")]
+        public IHttpActionResult Publish(ImportManifest importManifest)
         {
             var settingsManager = ServiceLocator.Current.GetInstance<ISettingsManager>();
             var packagesPath = settingsManager.GetValue("VirtoCommerce.ModulesPublishing.AppStoreImport.PackagesPath", String.Empty);
 
-            var importManifest = new ImportManifest
-            {
-                CatalodId = catalogId,
-                DefaultCategoryCode = settingsManager.GetValue("VirtoCommerce.ModulesPublishing.AppStoreImport.DefaultCategoryCode", String.Empty),
-                PackagesPath = HttpContext.Current.Server.MapPath(packagesPath)
-            };
+            importManifest.DefaultCategoryCode = settingsManager.GetValue("VirtoCommerce.ModulesPublishing.AppStoreImport.DefaultCategoryCode", String.Empty);
+            importManifest.PackagesPath = HttpContext.Current.Server.MapPath(packagesPath);
 
             var notification = new ModulePublishingPushNotification(CurrentPrincipal.GetCurrentUserName())
             {

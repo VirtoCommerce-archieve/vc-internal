@@ -1,8 +1,6 @@
 ﻿using System;
-using VirtoCommerce.ModulesPublishing.Import;
-using VirtoCommerce.Platform.Core.ExportImport;
 
-namespace VirtoCommerce.CatalogModule.Web.ExportImport
+namespace VirtoCommerce.ModulesPublishing.Import
 {
     public interface IModuleImporter
     {
