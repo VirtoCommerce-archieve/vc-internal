@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Linq;
 using VirtoCommerce.Domain.Catalog.Services;
-using VirtoCommerce.Platform.Core.Caching;
 using System.IO;
 using VirtoCommerce.Domain.Catalog.Model;
 using VirtoCommerce.Platform.Core.PushNotifications;
@@ -20,10 +19,10 @@ namespace VirtoCommerce.ModulesPublishing.Import
         private readonly ICategoryService _categoryService;
         private readonly IItemService _productService;
         private readonly IPushNotificationManager _pushNotificationManager;
-        private readonly CacheManager _cacheManager;
         private readonly ICatalogSearchService _searchService;
         private readonly IBlobStorageProvider _blobStorageProvider;
         private readonly IPropertyService _propertyService;
+       private readonly IItemService _itemService;
 
         private Property[] _catalogProperties;
         private Category _defaultCategory;
@@ -36,16 +35,16 @@ namespace VirtoCommerce.ModulesPublishing.Import
 
         public ModuleImporter(ICatalogService catalogService, ICategoryService categoryService, IItemService productService, 
             IBlobStorageProvider blobStorageProvider, IPushNotificationManager pushNotificationManager, 
-            CacheManager cacheManager, ICatalogSearchService searchService, IPropertyService propertyService)
+            ICatalogSearchService searchService, IPropertyService propertyService, IItemService itemService)
         {
             _catalogService = catalogService;
             _categoryService = categoryService;
             _productService = productService;
             _pushNotificationManager = pushNotificationManager;
-            _cacheManager = cacheManager;
             _searchService = searchService;
             _blobStorageProvider = blobStorageProvider;
             _propertyService = propertyService;
+            _itemService = itemService;
         }
 
 
@@ -57,7 +56,7 @@ namespace VirtoCommerce.ModulesPublishing.Import
             progressCallback(progressInfo);
 
             _defaultCategory = GetCategoriesByCode(importManifest.DefaultCategoryCode, importManifest.CatalogId);
-            _catalogProperties = _propertyService.GetCatalogProperties(importManifest.CatalogId);
+            _catalogProperties = _propertyService.GetAllCatalogProperties(importManifest.CatalogId);
             var zipModulePaths = Directory.GetFiles(importManifest.PackagesPath);
             progressInfo.TotalCount = zipModulePaths.Count();
 
@@ -92,6 +91,7 @@ namespace VirtoCommerce.ModulesPublishing.Import
         {
             var publishingResult = PublishingResult.None;
             var productCode = manifest.Id;
+
             productCode = Regex.Replace(productCode, @"[^A-Za-z0-9_]", "_");
             var product = GetProductByCode(productCode, _defaultCategory.Catalog.Id);
 
@@ -104,11 +104,19 @@ namespace VirtoCommerce.ModulesPublishing.Import
                     Code = productCode,
                     CategoryId = _defaultCategory.Id,
                     CatalogId = _defaultCategory.CatalogId,
+                    IsActive = false,
+                    IsBuyable = false
                 };
 
-                AddProperty(product, "Description", manifest.Description, PropertyValueType.LongText);
+                if (!string.IsNullOrEmpty(manifest.Description))
+                {
+                    AddProperty(product, "Description", manifest.Description, PropertyValueType.LongText);
+                }
 
-                AddIcon(product, Path.GetExtension(manifest.IconUrl), icon);
+                if (!string.IsNullOrEmpty(manifest.IconUrl))
+                {
+                    AddIcon(product, Path.GetExtension(manifest.IconUrl), icon);
+                }
 
                 product = _productService.Create(product);
                 publishingResult = PublishingResult.Product;
@@ -124,7 +132,7 @@ namespace VirtoCommerce.ModulesPublishing.Import
             //add variation + asset
             var variationCode = string.Format("{0}_{1}", manifest.Id, manifest.Version);
             variationCode = Regex.Replace(variationCode, @"[^A-Za-z0-9_]", "_");
-            var variation = GetProductByCode(variationCode, _defaultCategory.Catalog.Id);
+            var variation = product.Variations.Where(x=>x.Code == variationCode).FirstOrDefault();
 
             if (variation == null)
             {
@@ -188,17 +196,12 @@ namespace VirtoCommerce.ModulesPublishing.Import
             {
                 using (MemoryStream ms = new MemoryStream(icon))
                 {
-                    var temp = new UploadStreamInfo
+                    var blobRelativeUrl = Path.Combine("catalog", product.Code, HttpUtility.UrlDecode(Path.ChangeExtension("icon", extention)));
+                    using (var targetStream = _blobStorageProvider.OpenWrite(blobRelativeUrl))
                     {
-                        FileName = HttpUtility.UrlDecode(Path.ChangeExtension("icon", extention)),
-                        FolderName = Path.Combine("catalog", product.Code),
-                        FileByteStream = ms,
-                    };
-                    var imageUrl = _blobStorageProvider.Upload(temp);
-                    if (!string.IsNullOrEmpty(imageUrl))
-                    {
-                        product.Images = new List<Image> { new Image { Url = imageUrl } };
+                        ms.CopyTo(targetStream);
                     }
+                    product.Images = new List<Image> { new Image { Url = blobRelativeUrl } };
                 }
             }
         }
@@ -210,28 +213,24 @@ namespace VirtoCommerce.ModulesPublishing.Import
         {
             using (var zipStream = new FileStream(path, FileMode.Open))
             {
-                var uploadStreamInfo = new UploadStreamInfo
+                var blobRelativeUrl = Path.Combine("catalog", product.Code, HttpUtility.UrlDecode(Path.ChangeExtension(product.Code, "zip")));
+                using (var targetStream = _blobStorageProvider.OpenWrite(blobRelativeUrl))
                 {
-                    FileName = HttpUtility.UrlDecode(Path.ChangeExtension(product.Code, "zip")),
-                    FolderName = Path.Combine("catalog", product.Code),
-                    FileByteStream = zipStream
-                };
-
-                var assetUrl = _blobStorageProvider.Upload(uploadStreamInfo);
-                if (!string.IsNullOrEmpty(assetUrl))
-                {
-                    product.Assets = new List<Asset> { new Asset { Url = assetUrl, Name = Path.GetFileName(assetUrl) } };
+                    zipStream.CopyTo(targetStream);
                 }
+                product.Assets = new List<Asset> { new Asset { Url = blobRelativeUrl, Name = Path.GetFileName(blobRelativeUrl) } };
             }
         }
+
 
         /// <summary>
         /// Get product by Code from given catalog 
         /// </summary>
         private CatalogProduct GetProductByCode(string code, string catalogId)
         {
-            var responseGroup = ResponseGroup.WithProducts | ResponseGroup.WithVariations;
-            var criteria = new SearchCriteria { Count = 1, Start = 0, ResponseGroup = responseGroup, Code = code, CatalogId = catalogId, GetAllCategories = true };
+            var responseGroup = SearchResponseGroup.WithProducts | SearchResponseGroup.WithVariations;
+
+            var criteria = new SearchCriteria { Take = 1, Skip = 0, ResponseGroup = responseGroup, Code = code, CatalogId = catalogId, SearchInChildren = true, WithHidden = true};
             var searchResponse = _searchService.Search(criteria);
             return searchResponse.Products.FirstOrDefault();
         }
@@ -241,8 +240,8 @@ namespace VirtoCommerce.ModulesPublishing.Import
         /// </summary>
         private Category GetCategoriesByCode(string code, string catalogId)
         {
-            var responseGroup = ResponseGroup.WithCatalogs | ResponseGroup.WithCategories;
-            var criteria = new SearchCriteria { Count = 1, Start = 0, ResponseGroup = responseGroup, Code = code, CatalogId = catalogId, GetAllCategories = true };
+            var responseGroup = SearchResponseGroup.WithCatalogs | SearchResponseGroup.WithCategories;
+            var criteria = new SearchCriteria { Take = 1, Skip = 0, ResponseGroup = responseGroup, Code = code, CatalogId = catalogId, WithHidden = true };
             var searchResponse = _searchService.Search(criteria);
             return searchResponse.Categories.FirstOrDefault();
         }
