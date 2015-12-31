@@ -24,5 +24,26 @@ The repository is a fork of Virto Commerce <a href="https://github.com/VirtoComm
 <ol>
 <li>Execute "pack_modules.cmd" file in the root of repository to generate packages</li>
 <li>Go to "\artifacts\modules" folder</li>
-<li>Look for VirtoCommerce.ModulesPublishing_x.x.x.zip. (x.x.x is version into "module.manifest" file)</li>
+<li>Look for ModuleID_x.x.x.zip. (x.x.x is version into "module.manifest" file)</li>
+</ol>
+
+#How to install module package to Virto Commerce manager?
+<ol>
+<li>Open app store manager.</li>
+<li>Go to Configuration\Modules.</li>
+<li>Click "Install" toolbar command.</li>
+<li>In the opened blade, pick up a package.</li>
+<li>Click “Install” button.</li>
+<li>At the end, click “Restart” button.</li>
+</ol>
+
+#How to update “Modules Publishing” module?
+<ol>
+<li>Open app store manager.</li>
+<li>Go to Configuration\Modules.</li>
+<li>Select updated module.</li>
+<li>In the opened blade, click “Update” toolbar command.</li>
+<li>In the opened blade, pick up a new version module package.</li>
+<li>Click “Update” button.</li>
+<li>At the end, click “Restart” button.</li>
 </ol>
