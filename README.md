@@ -1,32 +1,49 @@
-Virto Commerce 2.x
+Virto Commerce Internal
 ============
-[![Build Status](http://ci.virtocommerce.com:8080/buildStatus/icon?job=VirtoCommerce 2.x CI Build)](http://ci.virtocommerce.com/job/VirtoCommerce 2.x CI Build)
+Virto Commerce Internal is number extensions of Virto Commerce 2.x. 
+The repository is a fork of Virto Commerce <a href="https://github.com/VirtoCommerce/vc-internal#virto-commerce-2x">repository</a>.
 
-Virto Commerce is the second generation release and is the only enterprise level e-commerce product fully available under Open Source license. Virto Commerce is based on .NET 4.5 with extensive use of MVC, IoC, EF, Azure, Angular JS and many other cutting edge technologies. It can be deployed in Microsoft Cloud (Azure), Amazon Web Services (AWS) and on-premise.
+#How to update to last Virto Commerce version
+<ol>
+<li>Checkout the repository</li>
+<li>Set vc-community as upstream repository. Use command: ”git remote add upstream https://github.com/VirtoCommerce/vc-community.git"</li>
+<li>Fetch from upstream repository “git fetch upstream”</li>
+<li>Merge “git merge upstream/BranchName” (BranchName  is a branch you want to merge)</li>
+<li>Push Merge to the repository</li>
+</ol>
 
-Documentation: http://docs.virtocommerce.com
+#How to change or fix something?
+<ol>
+<li>Update to Virto Commerce last version</li>
+<li>Make chenges</li>
+<li>Update version in "module.manifest" file</li>
+<li>Commit changes</li>
+</ol>
 
-DEMO
------------
-http://virtocommerce.com/try-now/online-demo
+#How to make packages for Virto Commerce app store?
+<ol>
+<li>Execute "pack_modules.cmd" file in the root of repository to generate packages</li>
+<li>Go to "\artifacts\modules" folder</li>
+<li>Look for ModuleID_x.x.x.zip. (x.x.x is version into "module.manifest" file)</li>
+</ol>
 
-Cloud Private Demo
------------
+#How to install module package to Virto Commerce manager?
+<ol>
+<li>Open app store manager.</li>
+<li>Go to Configuration\Modules.</li>
+<li>Click "Install" toolbar command.</li>
+<li>In the opened blade, pick up a package.</li>
+<li>Click “Install” button.</li>
+<li>At the end, click “Restart” button.</li>
+</ol>
 
-Setup your own private Microsoft Cloud environment and evaluate the latest version of Virto Commerce, <a href="http://docs.virtocommerce.com/display/vc2devguide/Deploy+from+GitHub+to+Microsoft+Cloud+Azure" target="_blank">read more</a>.
-
-<a href="https://azuredeploy.net/" target="_blank">
-  <img alt="Deploy to Azure" src="http://azuredeploy.net/deploybutton.png"/>
-</a>
-
-Contributing
------------
-We welcome & recognize contributors to Virto Commerce. There are many benefits available for our contributers, from special licensing to project involvement. Follow the guide below to contribute:
-
-1. Before starting work on a new contribution, take a moment and search the commits and issues for similar proposals.
-2. Fork the Virto Commerce repository into your account according to <a href="https://help.github.com/articles/fork-a-repo/">GitHub Fork a Repo</a> document.
-3. Make your changes. We also recommend you test your code before contributing.
-4. Once ready to commit your changes, create a pull request according to <a href="https://help.github.com/articles/creating-a-pull-request/">GitHub Create a Pull Request</a>.
-5. Once received, the Virto Commerce development team will review your contribution and if approved, will pull your request to the appropriate branch.
-
-Note: You must agree to <a href="http://virtocommerce.com/contribute-agreement">Virto Commerce Contributor License Agreement</a> before pulling any requests. You only need to sign the agreement once.
+#How to update “Modules Publishing” module?
+<ol>
+<li>Open app store manager.</li>
+<li>Go to Configuration\Modules.</li>
+<li>Select updated module.</li>
+<li>In the opened blade, click “Update” toolbar command.</li>
+<li>In the opened blade, pick up a new version module package.</li>
+<li>Click “Update” button.</li>
+<li>At the end, click “Restart” button.</li>
+</ol>
