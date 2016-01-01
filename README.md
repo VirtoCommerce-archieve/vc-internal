@@ -17,7 +17,7 @@ The repository is a fork of <a href="https://github.com/VirtoCommerce/vc-communi
 <li>Update to the lastest of Virto Commerce 2.x version (optionally).</li>
 <li>Make changes.</li>
 <li>Update version in the "module.manifest" file of changed module(s).</li>
-<li>Commit changes.</li>
+<li>Push to the repository.</li>
 </ol>
 
 #How to make packages for the Virto Commerce app store?
@@ -25,16 +25,15 @@ The repository is a fork of <a href="https://github.com/VirtoCommerce/vc-communi
 <li>Clone the repository.</li>
 <li>Go to root folder of local repository.</li>
 <li>Execute "pack_modules.cmd" file to generate modules packages.</li>
-<li>Go to "artifacts\modules" folder</li>
-<li>Look for ModuleID_x.x.x.zip. (x.x.x is version stored in "module.manifest" file)</li>
+<li>Go to the "artifacts\modules" folder. The folder contains a number of modules packages. Version of module package depending of version in "module.manifest" file.</li>
 </ol>
 
 #How to add a module to the Virto Commerce manager?
 <ol>
-<li>Open the  Virto Commerce manager.</li>
+<li>Open the Virto Commerce manager.</li>
 <li>Go to Configuration\Modules.</li>
 <li>Click on the "Install" toolbar command.</li>
-<li>In the opened blade, pick up a module package you want to install.</li>
+<li>In the opened blade, pick up a package of module you want to install.</li>
 <li>Click on the "Install" button.</li>
 <li>At the end, click on the "Restart button.</li>
 </ol>
@@ -43,9 +42,9 @@ The repository is a fork of <a href="https://github.com/VirtoCommerce/vc-communi
 <ol>
 <li>Open the Virto Commerce manager.</li>
 <li>Go to Configuration\Modules.</li>
-<li>Select an existing module updated.</li>
+<li>Select an existing module to update.</li>
 <li>In the opened blade, click on the "Update" toolbar command.</li>
-<li>In the opened blade, pick up a new version module package.</li>
+<li>In the opened blade, pick up a package of new version module.</li>
 <li>Click on the "Update" button.</li>
 <li>At the end, click on the "Restart" button.</li>
 </ol>
